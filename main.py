@@ -1,4 +1,3 @@
-
 import subprocess
 import pyautogui
 import cv2
@@ -13,9 +12,24 @@ import urllib
 APP_VERSION = "app-1.0.9008"
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
 ID_TO_READABLE = dict()
-NUM_OPEN_DMS = 12
+NUM_OPEN_DMS = 32
 
 template_locations = dict()
+
+import keyboard
+
+# Define the callback function for the hotkey
+def stop_program():
+    # Set a flag to stop the program
+    keyboard.unhook_all()
+    global stop
+    stop = True
+
+# Set the flag to False
+stop = False
+
+# Register the hotkey 'Ctrl+Alt+Q' with the callback function
+keyboard.add_hotkey('ctrl+alt+q', stop_program)
 
 with open("id_to_readable.json", "r") as json_f:
     ID_TO_READABLE = json.load(json_f)
@@ -177,7 +191,7 @@ def send_messages(header_x, header_y):
     pyautogui.hotkey('alt', 'down')
     group_dms_visited = set()
     dms_visited = set()
-    while len(group_dms_visited) + len(dms_visited) < NUM_OPEN_DMS and len(ID_TO_READABLE) > 0:
+    while len(group_dms_visited) + len(dms_visited) < NUM_OPEN_DMS and len(ID_TO_READABLE) > 0 and not stop:
         pyautogui.hotkey('alt', 'down')
         time.sleep(0.4)
         pyautogui.moveTo(header_x - 50, header_y, duration=0.1)
@@ -209,7 +223,7 @@ def send_messages(header_x, header_y):
         pyautogui.press('up')
         pyautogui.press('enter')
         user_id = pyperclip.paste()
-        time.sleep(1)
+        time.sleep(.5)
         if user_id in ID_TO_READABLE and not user_id in dms_visited:
             # leave and re-enter chat so that message box is focused
             pyautogui.hotkey('alt', 'up')
@@ -246,16 +260,25 @@ def send_messages(header_x, header_y):
 
                             message += block + ' '
                         store_in_clipboard_paste_enter(message)
+            print(f"SENT MESSAGE TO {ID_TO_READABLE[user_id]}")
             del ID_TO_READABLE[user_id]
+            for _ in range(len(dms_visited) + len(group_dms_visited)):
+                pyautogui.hotkey('alt', 'down')
         dms_visited.add(user_id)
     print(len(dms_visited) + len(group_dms_visited))
 
+def stop_program():
+    # Stop the program
+    print('stopped')
+    raise SystemExit
+
+# Do something after the program stops
 if __name__ == '__main__':
     start_up()
-    # get_to_dms()
-    # time.sleep(0.5)
-    # get_to_friends_tab()
-    # time.sleep(0.5)
-    # header_x, header_y = get_dm_header_coordinates()
-    # time.sleep(0.5)
-    # send_messages(header_x, header_y)
+    get_to_dms()
+    time.sleep(0.5)
+    get_to_friends_tab()
+    time.sleep(0.5)
+    header_x, header_y = get_dm_header_coordinates()
+    time.sleep(0.5)
+    send_messages(header_x, header_y)
