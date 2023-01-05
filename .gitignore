@@ -1,4 +1,5 @@
 *.txt
-\messages
+/messages
 id_to_readable.json
 test.py
+/make_message_dirs.py
