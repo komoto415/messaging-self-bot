@@ -1,2 +1,3 @@
 *.txt
-*\messages
+\messages
+id_to_readable.json
