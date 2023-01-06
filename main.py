@@ -1,18 +1,21 @@
-import subprocess
-import pyautogui
 import cv2
 import numpy as np
 from PIL import ImageGrab
+import subprocess
+import os
+import shutil
 import time
+import pyautogui
 import pyperclip
+import urllib
 import json
 import re
-import urllib
 
 APP_VERSION = "app-1.0.9008"
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
 ID_TO_READABLE = dict()
-NUM_OPEN_DMS = 32
+NUM_OPEN_DMS = 1
+# NUM_OPEN_DMS = 32
 
 template_locations = dict()
 
@@ -68,13 +71,15 @@ def draw_bounding_box(image, template_h, template_w, top_left):
     cv2.imshow('Result', image)
     cv2.waitKey(0)
 
-def start_up():
+def focus_discord():
     # Set the path to the Discord executable
     path = f'C:\\Users\\Jeffrey\\AppData\\Local\\Discord\\{APP_VERSION}\\Discord.exe'
 
     # Launch Discord
     subprocess.run([path])
 
+def start_up():
+    focus_discord()
     # Do some zeroing out just so we can get a more consistent state after focusing the window
     # Calculate the coordinates of the center of the screen
     x = SCREEN_WIDTH / 2
@@ -84,6 +89,7 @@ def start_up():
     # Maximize the window
     pyautogui.hotkey('winleft', 'up')
 
+    # sex window zoom to 3x
     pyautogui.hotkey('ctrl', '0')
     time.sleep(.3)
     pyautogui.hotkey('ctrl', '=')
@@ -186,6 +192,11 @@ def store_in_clipboard_paste_enter(string):
     time.sleep(0.2)
     pyautogui.press('enter')
 
+def dm_up_dm_down():
+    pyautogui.hotkey('alt', 'up')
+    time.sleep(0.3)
+    pyautogui.hotkey('alt', 'down')
+
 def send_messages(header_x, header_y):
     over_name_x = header_x + 35
     pyautogui.hotkey('alt', 'down')
@@ -194,7 +205,7 @@ def send_messages(header_x, header_y):
     while len(group_dms_visited) + len(dms_visited) < NUM_OPEN_DMS and len(ID_TO_READABLE) > 0 and not stop:
         pyautogui.hotkey('alt', 'down')
         time.sleep(0.4)
-        pyautogui.moveTo(header_x - 50, header_y, duration=0.1)
+        # pyautogui.moveTo(header_x, header_y, duration=0.1)
 
         template = cv2.imread('templates\\dm_icon_template.png')
 
@@ -205,7 +216,6 @@ def send_messages(header_x, header_y):
         result = get_template_result(template, region_w, region_h)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         threshold = 0.8
-        pyautogui.click()
         pyautogui.moveTo(over_name_x, header_y, duration=0.1)
 
         if max_val < threshold:
@@ -226,17 +236,51 @@ def send_messages(header_x, header_y):
         time.sleep(.5)
         if user_id in ID_TO_READABLE and not user_id in dms_visited:
             # leave and re-enter chat so that message box is focused
-            pyautogui.hotkey('alt', 'up')
+            dm_up_dm_down()
             time.sleep(0.3)
-            pyautogui.hotkey('alt', 'down')
-            with open(f".\\messages\\{ID_TO_READABLE[user_id]}@{user_id}\\message.txt", 'r') as message_file:
+            pyautogui.hotkey('ctrl', 'a')
+            pyautogui.hotkey('del')
+
+            recipient_message_dir = f".\\messages\\{ID_TO_READABLE[user_id]}@{user_id}"
+            with open(f"{recipient_message_dir}\\message.txt", 'r') as message_file:
                 lines = message_file.readlines()
                 for line in lines:
                     time.sleep(0.5)
                     line = line.strip()
                     if line.startswith('@'):
-                        # do file stuff
-                        ...
+                        file_name = line[1:]
+                        if not os.path.exists(file_path := f'{recipient_message_dir}\\{file_name}'):
+                            print('file not found')
+                            continue
+
+                        files = os.listdir(recipient_message_dir)
+                        subprocess.run(['explorer', recipient_message_dir])
+                        time.sleep(2)
+
+                        file_found = False
+                        while not file_found:
+                            pyautogui.press('down')
+                            pyautogui.press('F2')
+                            pyautogui.hotkey('ctrl', 'a')
+                            pyautogui.hotkey('ctrl', 'c')
+                            pyautogui.hotkey('enter')
+                            curr_file_name = pyperclip.paste()
+                            file_found = curr_file_name == file_name
+
+                            if file_found:
+                                print(curr_file_name)
+                                print('file found')
+                                time.sleep(0.2)
+                                pyautogui.hotkey('ctrl', 'c')
+                                pyautogui.hotkey('ctrl', 'w')
+                                focus_discord()
+                                dm_up_dm_down()
+                                time.sleep(0.3)
+                                pyautogui.hotkey('ctrl', 'v')
+                                pyautogui.press('enter')
+
+                                shutil.move(file_path, f"{recipient_message_dir}\\sent_files\\{file_name}")
+
                     else:
                         blocks = re.split(r'(https?://[^\s]+)|\s+', line)
                         clean_blocks = [block for block in blocks if block != '' and block is not None]
