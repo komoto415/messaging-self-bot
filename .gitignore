@@ -2,5 +2,7 @@
 /messages
 id_to_readable.json
 id_to_readable_copy.json
-test.py
-/make_message_dirs.py
+utils/test.py
+/utils/make_message_dirs.py
+/screenshot_gray.png
+/template_gray.png
